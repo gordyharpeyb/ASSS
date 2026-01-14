@@ -127,7 +127,6 @@ jobs:
           }
           
           # Tạo user mới với đầy đủ quyền
-          try {
               
               # Đặt password không bao giờ hết hạn (dùng Set-LocalUser nếu cần)
               try {
@@ -145,11 +144,6 @@ jobs:
               Enable-LocalUser -Name "runneradmin"
               
               Write-Host "│ ✅ Đã cấp quyền Administrator & RDP" -ForegroundColor Green
-              
-          } catch {
-              Write-Host "│ ❌ Lỗi tạo user: $($_.Exception.Message)" -ForegroundColor Red
-              exit 1
-          }
           
           # Lưu thông tin (cẩn trọng nếu repo public)
           echo "RDP_USER=runneradmin" >> $env:GITHUB_ENV
@@ -223,8 +217,9 @@ jobs:
           Start-Sleep -Seconds 10
           
           # Kết nối Tailscale
+          $RANID = Get-Random -Minimum 11111 -Maximum 99999
           try {
-              & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=$env:TAILSCALE_AUTH_KEY --hostname=Mahpneik-$env:GITHUB_RUN_ID --accept-routes --accept-dns --reset
+              & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=$env:TAILSCALE_AUTH_KEY --hostname=VPS-Mahpneik-ID$RANID --accept-routes --accept-dns --reset
               Write-Host "│ ✅ Kết nối Tailscale thành công" -ForegroundColor Green
           } catch {
               Write-Host "│ ❌ Lỗi kết nối Tailscale" -ForegroundColor Red
@@ -279,6 +274,7 @@ jobs:
           Write-Host "│           🎉 KẾT NỐI THÀNH CÔNG 🎉       │" -ForegroundColor Cyan
           Write-Host "├───────────────────────────────────────────┤" -ForegroundColor Cyan
           Write-Host "│ 🌐  Địa chỉ: $env:TAILSCALE_IP" -ForegroundColor White
+          Write-Host "│ 🖥  Tên: VPS-Mahpneik-ID$RANID" -ForegroundColor White          
           Write-Host "│ 👤  Tài khoản: runneradmin" -ForegroundColor White
           Write-Host "│ 🔐  Mật khẩu: $matKhau" -ForegroundColor White
           Write-Host "│ ⏰  Thời lượng: $displayTime" -ForegroundColor White
