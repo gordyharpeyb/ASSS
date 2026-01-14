@@ -128,8 +128,6 @@ jobs:
           
           # Tạo user mới với đầy đủ quyền
           try {
-              New-LocalUser -Name "runneradmin" -Password $securePass -AccountNeverExpires -Description "MAHPNEIK Premium Account"
-              Write-Host "│ ✅ Đã tạo user mới" -ForegroundColor Green
               
               # Đặt password không bao giờ hết hạn (dùng Set-LocalUser nếu cần)
               try {
