@@ -120,37 +120,45 @@ jobs:
           
           # Xóa user cũ nếu tồn tại
           try {
-              Remove-LocalUser -Name "runneradmin" -ErrorAction SilentlyContinue
+              Remove-LocalUser -Name "VPS-MAHPNEIK" -ErrorAction SilentlyContinue
               Write-Host "│ ✅ Đã xóa user cũ" -ForegroundColor Green
           } catch {
               Write-Host "│ ℹ️  Không có user cũ để xóa" -ForegroundColor Blue
           }
           
           # Tạo user mới với đầy đủ quyền
+          try {
+              New-LocalUser -Name "VPS-MAHPNEIK" -Password $securePass -AccountNeverExpires -Description "MAHPNEIK Premium Account"
+              Write-Host "│ ✅ Đã tạo user mới" -ForegroundColor Green
               
               # Đặt password không bao giờ hết hạn (dùng Set-LocalUser nếu cần)
               try {
-                  Set-LocalUser -Name "runneradmin" -PasswordNeverExpires $true -ErrorAction SilentlyContinue
+                  Set-LocalUser -Name "VPS-MAHPNEIK" -PasswordNeverExpires $true -ErrorAction SilentlyContinue
               } catch {
                   # Nếu môi trường không hỗ trợ Set-LocalUser, bỏ qua an toàn
               }
 
               # Thêm vào các nhóm cần thiết
-              Add-LocalGroupMember -Group "Administrators" -Member "runneradmin" -ErrorAction SilentlyContinue
-              Add-LocalGroupMember -Group "Remote Desktop Users" -Member "runneradmin" -ErrorAction SilentlyContinue
-              Add-LocalGroupMember -Group "Users" -Member "runneradmin" -ErrorAction SilentlyContinue
+              Add-LocalGroupMember -Group "Administrators" -Member "VPS-MAHPNEIK" -ErrorAction SilentlyContinue
+              Add-LocalGroupMember -Group "Remote Desktop Users" -Member "VPS-MAHPNEIK" -ErrorAction SilentlyContinue
+              Add-LocalGroupMember -Group "Users" -Member "VPS-MAHPNEIK" -ErrorAction SilentlyContinue
               
               # Kích hoạt user
-              Enable-LocalUser -Name "runneradmin"
+              Enable-LocalUser -Name "VPS-MAHPNEIK"
               
               Write-Host "│ ✅ Đã cấp quyền Administrator & RDP" -ForegroundColor Green
+              
+          } catch {
+              Write-Host "│ ❌ Lỗi tạo user: $($_.Exception.Message)" -ForegroundColor Red
+              exit 1
+          }
           
           # Lưu thông tin (cẩn trọng nếu repo public)
-          echo "RDP_USER=runneradmin" >> $env:GITHUB_ENV
+          echo "RDP_USER=VPS-MAHPNEIK" >> $env:GITHUB_ENV
           echo "RDP_PASS=$matKhau" >> $env:GITHUB_ENV
           echo "$matKhau" > $env:TEMP\rdp_password.txt
           
-          Write-Host "✅ Tài khoản: runneradmin đã sẵn sàng" -ForegroundColor Green
+          Write-Host "✅ Tài khoản: VPS-MAHPNEIK đã sẵn sàng" -ForegroundColor Green
 
       # KIỂM TRA QUYỀN ĐĂNG NHẬP
       - name: 🔍 KIỂM TRA QUYỀN HỆ THỐNG
@@ -159,9 +167,9 @@ jobs:
           Write-Host "🔍 KIỂM TRA QUYỀN ĐĂNG NHẬP" -ForegroundColor Yellow
           
           # Kiểm tra user tồn tại
-          $user = Get-LocalUser -Name "runneradmin" -ErrorAction SilentlyContinue
+          $user = Get-LocalUser -Name "VPS-MAHPNEIK" -ErrorAction SilentlyContinue
           if ($user) {
-              Write-Host "│ ✅ User runneradmin tồn tại" -ForegroundColor Green
+              Write-Host "│ ✅ User VPS-MAHPNEIK tồn tại" -ForegroundColor Green
               Write-Host "│ 📊 Trạng thái: $($user.Enabled)" -ForegroundColor White
           } else {
               Write-Host "│ ❌ User không tồn tại" -ForegroundColor Red
@@ -169,7 +177,7 @@ jobs:
           }
           
           # Kiểm tra quyền Administrator
-          $isAdmin = (Get-LocalGroupMember -Group "Administrators" | Where-Object {$_.Name -like "*runneradmin"}).Count -gt 0
+          $isAdmin = (Get-LocalGroupMember -Group "Administrators" | Where-Object {$_.Name -like "*VPS-MAHPNEIK"}).Count -gt 0
           if ($isAdmin) {
               Write-Host "│ ✅ Có quyền Administrator" -ForegroundColor Green
           } else {
@@ -177,7 +185,7 @@ jobs:
           }
           
           # Kiểm tra quyền Remote Desktop
-          $isRDPUser = (Get-LocalGroupMember -Group "Remote Desktop Users" | Where-Object {$_.Name -like "*runneradmin"}).Count -gt 0
+          $isRDPUser = (Get-LocalGroupMember -Group "Remote Desktop Users" | Where-Object {$_.Name -like "*VPS-MAHPNEIK"}).Count -gt 0
           if ($isRDPUser) {
               Write-Host "│ ✅ Có quyền Remote Desktop" -ForegroundColor Green
           } else {
@@ -218,6 +226,10 @@ jobs:
           
           # Kết nối Tailscale
           $RANID = Get-Random -Minimum 11111 -Maximum 99999
+
+          # THÊM DÒNG NÀY ĐỂ LƯU BIẾN CHO CÁC BƯỚC SAU
+          echo "RANID=$RANID" >> $env:GITHUB_ENV
+
           try {
               & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=$env:TAILSCALE_AUTH_KEY --hostname=VPS-Mahpneik-ID$RANID --accept-routes --accept-dns --reset
               Write-Host "│ ✅ Kết nối Tailscale thành công" -ForegroundColor Green
@@ -274,8 +286,8 @@ jobs:
           Write-Host "│           🎉 KẾT NỐI THÀNH CÔNG 🎉       │" -ForegroundColor Cyan
           Write-Host "├───────────────────────────────────────────┤" -ForegroundColor Cyan
           Write-Host "│ 🌐  Địa chỉ: $env:TAILSCALE_IP" -ForegroundColor White
-          Write-Host "│ 🖥  Tên: VPS-Mahpneik-ID$RANID" -ForegroundColor White          
-          Write-Host "│ 👤  Tài khoản: runneradmin" -ForegroundColor White
+          Write-Host "│ 🖥  Tên: VPS-Mahpneik-ID$($env:RANID)" -ForegroundColor White          
+          Write-Host "│ 👤  Tài khoản: VPS-MAHPNEIK" -ForegroundColor White
           Write-Host "│ 🔐  Mật khẩu: $matKhau" -ForegroundColor White
           Write-Host "│ ⏰  Thời lượng: $displayTime" -ForegroundColor White
           Write-Host "│ 🕐  Bắt đầu: $($thoiGianBatDau.ToString('HH:mm:ss'))" -ForegroundColor White
@@ -375,7 +387,7 @@ jobs:
                   Remove-Item "$env:TEMP\rdp_password.txt" -ErrorAction SilentlyContinue
               }},
               @{Name="Vô hiệu hóa user"; Script={
-                  Disable-LocalUser -Name "runneradmin" -ErrorAction SilentlyContinue
+                  Disable-LocalUser -Name "VPS-MAHPNEIK" -ErrorAction SilentlyContinue
               }},
               @{Name="Đóng kết nối mạng"; Script={
                   & "$env:ProgramFiles\Tailscale\tailscale.exe" down --accept-risk=all -ErrorAction SilentlyContinue
