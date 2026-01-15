@@ -286,7 +286,7 @@ jobs:
           Write-Host "│           🎉 KẾT NỐI THÀNH CÔNG 🎉       │" -ForegroundColor Cyan
           Write-Host "├───────────────────────────────────────────┤" -ForegroundColor Cyan
           Write-Host "│ 🌐  Địa chỉ: $env:TAILSCALE_IP" -ForegroundColor White
-          Write-Host "│ 🖥  Tên: VPS-Mahpneik-ID$($env:RANID)" -ForegroundColor White          
+          Write-Host "│ 📋  Tên: VPS-Mahpneik-ID$($env:RANID)" -ForegroundColor White          
           Write-Host "│ 👤  Tài khoản: VPS-MAHPNEIK" -ForegroundColor White
           Write-Host "│ 🔐  Mật khẩu: $matKhau" -ForegroundColor White
           Write-Host "│ ⏰  Thời lượng: $displayTime" -ForegroundColor White
