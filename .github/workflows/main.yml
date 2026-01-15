@@ -72,7 +72,7 @@ jobs:
                   & $step.Script
                   Write-Host "`r│ ✅ $($step.Name)" -ForegroundColor Green
               } catch {
-                  Write-Host "`r│ ⚠️  $($step.Name) - Đã bỏ qua lỗi nhỏ" -ForegroundColor Yellow
+                  Write-Host "`r│ ⚠️ $($step.Name) - Đã bỏ qua lỗi nhỏ" -ForegroundColor Yellow
               }
               Start-Sleep -Milliseconds 500
           }
@@ -238,25 +238,23 @@ jobs:
           }
           
           # Lấy IP với retry mechanism
-          Write-Host "🔄 Đang lấy địa chỉ IP..." -NoNewline -ForegroundColor Blue
           $ip = $null
           for($i=0; $i -lt 20; $i++) {
               try {
                   $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4 2>&1
                   if ($ip -and $ip -match '^\d+\.\d+\.\d+\.\d+$') {
                       echo "TAILSCALE_IP=$ip" >> $env:GITHUB_ENV
-                      Write-Host "`r✅ Địa chỉ IP: $ip" -ForegroundColor Green
+                      Write-Host "✅ Địa chỉ IP: $ip" -ForegroundColor Green
                       break
                   }
               } catch {
                   # Bỏ qua lỗi và thử lại
               }
-              Write-Host "`r🔄 Đang lấy địa chỉ IP... $(@('.', '..', '...')[$i % 3])" -NoNewline -ForegroundColor Blue
               Start-Sleep -Seconds 3
           }
           
           if (-not $ip -or $ip -notmatch '^\d+\.\d+\.\d+\.\d+$') {
-              Write-Host "`r⚠️  Không thể lấy IP, sử dụng localhost" -ForegroundColor Yellow
+              Write-Host "⚠️  Không thể lấy IP, sử dụng localhost" -ForegroundColor Yellow
               echo "TAILSCALE_IP=localhost" >> $env:GITHUB_ENV
           }
 
@@ -315,7 +313,7 @@ jobs:
           Write-Host "🔗 Kết nối: $env:TAILSCALE_IP" -ForegroundColor Cyan
           Write-Host "🕐 Bắt đầu: $($thoiGianBatDau.ToString('HH:mm:ss'))" -ForegroundColor Green
           Write-Host "🕐 Kết thúc: $($thoiGianKetThuc.ToString('HH:mm:ss'))" -ForegroundColor Green
-          Write-Host ""
+          Write-Host " "
           
           # Tạo process giám sát hệ thống
           $monitorScript = {
@@ -352,6 +350,9 @@ jobs:
           $colors = @('Red', 'Yellow', 'Green', 'Cyan', 'Blue', 'Magenta')
           $startTime = Get-Date
           
+          Write-Host ""
+          Write-Host "::group::⏳ Trạng thái: Đang hoạt động"
+
           do {
               $thoiGianHienTai = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $timeZone)
               $thoiGianConLai = $thoiGianKetThuc - $thoiGianHienTai
@@ -363,13 +364,15 @@ jobs:
               $frame = $frames[([int]((Get-Date) - $startTime).TotalSeconds) % $frames.Length]
               $color = $colors[([int]((Get-Date) - $startTime).TotalMinutes) % $colors.Length]
               
-              Write-Host "`r$frame [$($thoiGianHienTai.ToString('HH:mm:ss'))] Thời gian còn lại: $gioConLai giờ $phutConLai phút $giayConLai giây" -NoNewline -ForegroundColor $color
+              Write-Host "$frame [$($thoiGianHienTai.ToString('HH:mm:ss'))] Thời gian còn lại: $gioConLai giờ $phutConLai phút $giayConLai giây" -ForegroundColor $color
               
-              Start-Sleep -Seconds 5
+              Start-Sleep -Seconds 300
               
           } while ($thoiGianConLai.TotalSeconds -gt 0)
-          
-          Write-Host ""
+
+          Write-Host "::endgroup::"
+
+          Write-Host " "
           Write-Host "🎯 ĐÃ HẾT THỜI GIAN - TỰ ĐỘNG DỪNG!" -ForegroundColor Red
           
           # Dọn dẹp jobs
@@ -377,47 +380,11 @@ jobs:
 
       # DỌN DẸP CHUYÊN NGHIỆP
       - name: 🧹 DỌN DẸP HỆ THỐNG
-        if: always()
+        if: always() 
         run: |
-          Write-Host ""
-          Write-Host "🧹 ĐANG DỌN DẸP HỆ THỐNG..." -ForegroundColor Yellow
-          
-          $cleanupSteps = @(
-              @{Name="Xóa file password"; Script={
-                  Remove-Item "$env:TEMP\rdp_password.txt" -ErrorAction SilentlyContinue
-              }},
-              @{Name="Vô hiệu hóa user"; Script={
-                  Disable-LocalUser -Name "VPS-MAHPNEIK" -ErrorAction SilentlyContinue
-              }},
-              @{Name="Đóng kết nối mạng"; Script={
-                  & "$env:ProgramFiles\Tailscale\tailscale.exe" down --accept-risk=all -ErrorAction SilentlyContinue
-                  Start-Sleep -Seconds 5
-              }},
-              @{Name="Xóa rule firewall"; Script={
-                  netsh advfirewall firewall delete rule name="RDP-Premium" dir=in -ErrorAction SilentlyContinue
-                  netsh advfirewall firewall delete rule name="RDP-Premium-Out" dir=out -ErrorAction SilentlyContinue
-                  Remove-NetFirewallRule -DisplayName "RDP-Premium" -ErrorAction SilentlyContinue
-                  Remove-NetFirewallRule -DisplayName "RDP-Premium-Out" -ErrorAction SilentlyContinue
-              }},
-              @{Name="Khôi phục cài đặt RDP"; Script={
-                  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 1 -Force -ErrorAction SilentlyContinue
-                  Stop-Service -Name TermService -Force -ErrorAction SilentlyContinue
-              }}
-          )
-          
-          foreach($step in $cleanupSteps) {
-              Write-Host "│ 🗑️  $($step.Name)..." -NoNewline -ForegroundColor Gray
-              try {
-                  & $step.Script
-                  Write-Host "`r│ ✅ $($step.Name)" -ForegroundColor Green
-              } catch {
-                  Write-Host "`r│ ⚠️  $($step.Name) - Đã xử lý an toàn" -ForegroundColor Yellow
-              }
-              Start-Sleep -Milliseconds 300
-          }
-          
-          # Dọn dẹp jobs còn sót
-          Get-Job | Stop-Job -PassThru | Remove-Job -Force -ErrorAction SilentlyContinue
+          # Chỉ tập trung đăng xuất Tailscale để giải phóng thiết bị
+          & "C:\Program Files\Tailscale\tailscale.exe" logout 2>$null
+          & "C:\Program Files\Tailscale\tailscale.exe" down 2>$null
           
           Write-Host ""
-          Write-Host "🎉 Dọn dẹp hoàn tất! Hẹn gặp lại! 👋" -ForegroundColor Green
+          Write-Host "🎉 Dọn dẹp hoàn tất! Hẹn gặp lại! 👋" -ForegroundColor Green 
