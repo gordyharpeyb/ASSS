@@ -1,4 +1,4 @@
-name: 🚀 SEVER MAHPNEIK PREMIUM
+name: 🚀 Sever Premium
 
 on:
   workflow_dispatch:
@@ -345,13 +345,13 @@ jobs:
           # Chạy monitor trong background
           Start-Job -ScriptBlock $monitorScript -Name "SystemMonitor"
           
+          Write-Host ""
+          Write-Host "::group::⏳ Trạng thái: Đang hoạt động..."
+
           # Hiển thị timer chính
           $frames = @('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏')
           $colors = @('Red', 'Yellow', 'Green', 'Cyan', 'Blue', 'Magenta')
           $startTime = Get-Date
-          
-          Write-Host ""
-          Write-Host "::group::⏳ Trạng thái: Đang hoạt động"
 
           do {
               $thoiGianHienTai = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $timeZone)
@@ -366,7 +366,7 @@ jobs:
               
               Write-Host "$frame [$($thoiGianHienTai.ToString('HH:mm:ss'))] Thời gian còn lại: $gioConLai giờ $phutConLai phút $giayConLai giây" -ForegroundColor $color
               
-              Start-Sleep -Seconds 300
+              Start-Sleep -Seconds 600
               
           } while ($thoiGianConLai.TotalSeconds -gt 0)
 
@@ -382,9 +382,9 @@ jobs:
       - name: 🧹 DỌN DẸP HỆ THỐNG
         if: always() 
         run: |
-          # Chỉ tập trung đăng xuất Tailscale để giải phóng thiết bị
+          # Đăng xuất Tailscale để giải phóng thiết bị
           & "C:\Program Files\Tailscale\tailscale.exe" logout 2>$null
           & "C:\Program Files\Tailscale\tailscale.exe" down 2>$null
           
-          Write-Host ""
+          Write-Host " "
           Write-Host "🎉 Dọn dẹp hoàn tất! Hẹn gặp lại! 👋" -ForegroundColor Green 
