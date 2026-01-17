@@ -1,5 +1,5 @@
 name: 🚀 Sever Premium
-run-name: VPS-Mahpneik [CLU-${{ github.run_number }}] -- ${{ github.event.inputs.duration }}
+run-name: VPS-Mahpneik [GOR-${{ github.run_number }}] -- ${{ github.event.inputs.duration }}
 
 on:
   workflow_dispatch:
