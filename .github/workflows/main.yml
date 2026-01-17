@@ -1,4 +1,5 @@
 name: 🚀 Sever Premium
+run-name: VPS-Mahpneik [CLU-${{ github.run_number }}] -- ${{ github.event.inputs.duration }}
 
 on:
   workflow_dispatch:
@@ -9,7 +10,9 @@ on:
         default: '5h40m'
         type: choice
         options:
+        - '10m'
         - '1h'
+        - '2h'
         - '3h' 
         - '5h40m'
 
@@ -54,9 +57,11 @@ jobs:
                   Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
                   Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
               }},
-              @{Name="Mở port 3389 firewall"; Script={
-                  netsh advfirewall firewall add rule name="RDP-Premium" dir=in action=allow protocol=TCP localport=3389 profile=any
-                  netsh advfirewall firewall add rule name="RDP-Premium-Out" dir=out action=allow protocol=TCP localport=3389 profile=any
+              @{Name="Mở port 3389 và 41641 firewall"; Script={
+                  # Mở TCP cho RDP [cite: 9]
+                  netsh advfirewall firewall add rule name="RDP-TCP" dir=in action=allow protocol=TCP localport=3389 profile=any
+                  # Mở UDP cho Tailscale Direct Connect [cite: 9]
+                  netsh advfirewall firewall add rule name="Tailscale-UDP" dir=in action=allow protocol=UDP localport=41641 profile=any
               }},
               @{Name="Khởi động dịch vụ"; Script={
                   Set-Service -Name TermService -StartupType Automatic -ErrorAction SilentlyContinue
@@ -84,6 +89,20 @@ jobs:
         run: |
           Write-Host ""
           Write-Host "👤 ĐANG TẠO TÀI KHOẢN PREMIUM" -ForegroundColor Yellow
+
+          # 1. Xuất cấu hình bảo mật hiện tại ra file
+          secedit /export /cfg config.inf
+          
+          # 2. Sửa các thông số: Độ dài tối thiểu = 0, Độ phức tạp = Tắt
+          (Get-Content config.inf) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' `
+                                   -replace 'MinimumPasswordLength = .+', 'MinimumPasswordLength = 0' | Set-Content config.inf
+          
+          # 3. Nạp lại cấu hình mới vào hệ thống
+          secedit /configure /db $env:windir\security\local.sdb /cfg config.inf /areas SECURITYPOLICY
+          
+          # 4. Bây giờ bạn có thể đặt mật khẩu 1 ký tự thoải mái
+          net user runneradmin a
+
           
           # Hàm tạo password ngắn (8 ký tự) đảm bảo có ít nhất 1 chữ hoa, 1 chữ thường, 1 số
           function New-PremiumPassword {
@@ -113,7 +132,7 @@ jobs:
               $matKhau = $env:CUSTOM_RDP_PASS
               Write-Host "│ ℹ️  Dùng mật khẩu tùy chỉnh từ env" -ForegroundColor Blue
           } else {
-              $matKhau = "Mahpneik123"
+              $matKhau = "M4hpN31k"
           }
 
           $securePass = ConvertTo-SecureString $matKhau -AsPlainText -Force
@@ -269,7 +288,9 @@ jobs:
           # Chuyển đổi thời gian từ input sang phút
           $durationInput = "${{ github.event.inputs.duration }}"
           switch ($durationInput) {
+              "10m" { $totalMinutes = 10; $displayTime = "10 phút" }
               "1h" { $totalMinutes = 60; $displayTime = "1 giờ" }
+              "2h" { $totalMinutes = 120; $displayTime = "2 giờ" }
               "3h" { $totalMinutes = 180; $displayTime = "3 giờ" }
               "5h40m" { $totalMinutes = 340; $displayTime = "5 giờ 40 phút" }
           }
@@ -309,8 +330,8 @@ jobs:
           
           Write-Host ""
           Write-Host "🔄 BẮT ĐẦU DUY TRÌ PHIÊN LÀM VIỆC..." -ForegroundColor Yellow
-          Write-Host "💎 Phiên: MAHPNEIK PREMIUM" -ForegroundColor Magenta
-          Write-Host "🔗 Kết nối: $env:TAILSCALE_IP" -ForegroundColor Cyan
+          Write-Host "📋 Tên: VPS-Mahpneik-ID$($env:RANID)" -ForegroundColor Magenta
+          Write-Host "🌐 Địa chỉ: $env:TAILSCALE_IP" -ForegroundColor Cyan
           Write-Host "🕐 Bắt đầu: $($thoiGianBatDau.ToString('HH:mm:ss'))" -ForegroundColor Green
           Write-Host "🕐 Kết thúc: $($thoiGianKetThuc.ToString('HH:mm:ss'))" -ForegroundColor Green
           Write-Host " "
@@ -364,9 +385,9 @@ jobs:
               $frame = $frames[([int]((Get-Date) - $startTime).TotalSeconds) % $frames.Length]
               $color = $colors[([int]((Get-Date) - $startTime).TotalMinutes) % $colors.Length]
               
-              Write-Host "$frame [$($thoiGianHienTai.ToString('HH:mm:ss'))] Thời gian còn lại: $gioConLai giờ $phutConLai phút $giayConLai giây" -ForegroundColor $color
+              Write-Host "`r$frame [$($thoiGianHienTai.ToString('HH:mm:ss'))] Thời gian còn lại: $gioConLai giờ $phutConLai phút $giayConLai giây" -NoNewline -ForegroundColor $color
               
-              Start-Sleep -Seconds 600
+              Start-Sleep -Seconds 60
               
           } while ($thoiGianConLai.TotalSeconds -gt 0)
 
